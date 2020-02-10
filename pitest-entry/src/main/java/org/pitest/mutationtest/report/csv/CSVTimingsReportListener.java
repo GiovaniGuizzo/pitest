@@ -16,32 +16,29 @@ package org.pitest.mutationtest.report.csv;
 
 import java.io.IOException;
 import java.io.Writer;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-import java.util.Optional;
 import org.pitest.mutationtest.ClassMutationResults;
-import org.pitest.mutationtest.MutationResult;
 import org.pitest.mutationtest.MutationResultListener;
 import org.pitest.util.ResultOutputStrategy;
+import org.pitest.util.TimeSpan;
+import org.pitest.util.Timings;
 import org.pitest.util.Unchecked;
 
-public class CSVReportListener implements MutationResultListener {
+public class CSVTimingsReportListener implements MutationResultListener {
 
     private final Writer out;
+    private final Timings timings;
 
-    public CSVReportListener(final ResultOutputStrategy outputStrategy) {
-        this(outputStrategy.createWriterForFile("mutations.csv"));
+    public CSVTimingsReportListener(final ResultOutputStrategy outputStrategy, final Timings timings) {
+        this(outputStrategy.createWriterForFile("mutation-timings.csv"), timings);
     }
 
-    public CSVReportListener(final Writer out) {
+    public CSVTimingsReportListener(final Writer out, final Timings timings) {
         this.out = out;
-    }
-
-    private String createKillingTestDesc(final Optional<String> killingTest) {
-        if (killingTest.isPresent()) {
-            return killingTest.get();
-        } else {
-            return "none";
-        }
+        this.timings = timings;
     }
 
     private String makeCsv(final Object... os) {
@@ -57,11 +54,30 @@ public class CSVReportListener implements MutationResultListener {
 
     @Override
     public void runStart() {
-
+        try {
+            this.out.write(makeCsv("stage", "timing")
+                    + System.getProperty("line.separator"));
+        } catch (IOException ex) {
+            throw Unchecked.translateCheckedException(ex);
+        }
     }
 
     @Override
     public void runEnd() {
+        final Map<Timings.Stage, TimeSpan> timingsMap = this.timings.getTimings();
+        final List<Map.Entry<Timings.Stage, TimeSpan>> sortedEntries = timingsMap
+                .entrySet()
+                .stream()
+                .sorted((entry1, entry2) -> entry1.getKey().compareTo(entry2.getKey()))
+                .collect(Collectors.toList());
+        for (Map.Entry<Timings.Stage, TimeSpan> entry : sortedEntries) {
+            try {
+                this.out.write(makeCsv(entry.getKey().toString().replaceAll(" ", ""), entry.getValue().duration())
+                        + System.getProperty("line.separator"));
+            } catch (IOException ex) {
+                throw Unchecked.translateCheckedException(ex);
+            }
+        }
         try {
             this.out.close();
         } catch (final IOException e) {
@@ -71,24 +87,7 @@ public class CSVReportListener implements MutationResultListener {
 
     @Override
     public void handleMutationResult(final ClassMutationResults metaData) {
-        try {
-
-            for (final MutationResult mutation : metaData.getMutations()) {
-                this.out.write(makeCsv(mutation.getDetails().getFilename(),
-                        mutation.getDetails().getClassName().asJavaName(),
-                        mutation.getDetails().getMutator(),
-                        mutation.getDetails().getMethod(),
-                        mutation.getDetails().getLineNumber(),
-                        mutation.getStatus(),
-                        mutation.getNumberOfTestsRun(),
-                        createKillingTestDesc(mutation.getKillingTest()))
-                        + System.getProperty("line.separator"));
-            }
-
-        } catch (final IOException ex) {
-            throw Unchecked.translateCheckedException(ex);
-        }
-
+        // Nothing to see here
     }
 
 }

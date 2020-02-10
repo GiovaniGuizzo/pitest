@@ -56,9 +56,6 @@ public class MutationAnalysisExecutor {
     } catch (final ExecutionException e) {
       throw Unchecked.translateCheckedException(e);
     }
-
-    signalRunEndToAllListeners();
-
   }
 
   private void processResult(List<Future<MutationMetaData>> results)
@@ -78,7 +75,7 @@ public class MutationAnalysisExecutor {
         a -> a.runStart());
   }
 
-  private void signalRunEndToAllListeners() {
+  public void signalRunEndToAllListeners() {
     FCollection.forEach(this.listeners,
         a -> a.runEnd());
   }

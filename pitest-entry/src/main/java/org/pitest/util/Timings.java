@@ -21,43 +21,47 @@ import java.util.Map.Entry;
 
 public class Timings {
 
-  public enum Stage {
-    BUILD_MUTATION_TESTS("build mutation tests"), RUN_MUTATION_TESTS(
-        "run mutation analysis"), SCAN_CLASS_PATH("scan classpath"), COVERAGE(
-            "coverage and dependency analysis");
+    public enum Stage {
+        BUILD_MUTATION_TESTS("build mutation tests"), RUN_MUTATION_TESTS(
+                "run mutation analysis"), SCAN_CLASS_PATH("scan classpath"), COVERAGE(
+                "coverage and dependency analysis");
 
-    private final String description;
+        private final String description;
 
-    Stage(final String desc) {
-      this.description = desc;
+        Stage(final String desc) {
+            this.description = desc;
+        }
+
+        @Override
+        public String toString() {
+            return this.description;
+        }
     }
 
-    @Override
-    public String toString() {
-      return this.description;
+    private final Map<Stage, TimeSpan> timings = new LinkedHashMap<>();
+
+    public void registerStart(final Stage stage) {
+        this.timings.put(stage, new TimeSpan(System.currentTimeMillis(), 0));
     }
-  }
 
-  private final Map<Stage, TimeSpan> timings = new LinkedHashMap<>();
-
-  public void registerStart(final Stage stage) {
-    this.timings.put(stage, new TimeSpan(System.currentTimeMillis(), 0));
-  }
-
-  public void registerEnd(final Stage stage) {
-    final long end = System.currentTimeMillis();
-    this.timings.get(stage).setEnd(end);
-  }
-
-  public void report(final PrintStream ps) {
-    long total = 0;
-    for (final Entry<Stage, TimeSpan> each : this.timings.entrySet()) {
-      total = total + each.getValue().duration();
-      ps.println("> " + each.getKey() + " : " + each.getValue());
+    public void registerEnd(final Stage stage) {
+        final long end = System.currentTimeMillis();
+        this.timings.get(stage).setEnd(end);
     }
-    ps.println(StringUtil.separatorLine());
-    ps.println("> Total " + " : " + new TimeSpan(0, total));
-    ps.println(StringUtil.separatorLine());
-  }
+
+    public Map<Stage, TimeSpan> getTimings() {
+        return Map.copyOf(timings);
+    }
+
+    public void report(final PrintStream ps) {
+        long total = 0;
+        for (final Entry<Stage, TimeSpan> each : this.timings.entrySet()) {
+            total = total + each.getValue().duration();
+            ps.println("> " + each.getKey() + " : " + each.getValue());
+        }
+        ps.println(StringUtil.separatorLine());
+        ps.println("> Total " + " : " + new TimeSpan(0, total));
+        ps.println(StringUtil.separatorLine());
+    }
 
 }
