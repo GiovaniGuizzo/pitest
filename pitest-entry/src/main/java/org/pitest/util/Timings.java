@@ -50,7 +50,7 @@ public class Timings {
     }
 
     public Map<Stage, TimeSpan> getTimings() {
-        return Map.copyOf(timings);
+        return timings;
     }
 
     public void report(final PrintStream ps) {
